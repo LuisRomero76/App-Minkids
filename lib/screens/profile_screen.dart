@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:minkids/services/auth_service.dart';
 import 'package:minkids/models/user.dart';
 import 'package:minkids/screens/add_child_screen.dart';
+import 'package:minkids/services/child_location_service.dart';
+import 'package:minkids/services/realtime_location_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -12,6 +15,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   UserModel? _user;
+  bool _updatingLocation = false;
 
   @override
   void initState() {
@@ -28,6 +32,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
     await AuthService.logout();
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed('/login');
+  }
+
+  void _updateLocation() async {
+    setState(() => _updatingLocation = true);
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      
+      if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+        final position = await Geolocator.getCurrentPosition();
+        final success = await ChildLocationService.registerMyLocation(position.latitude, position.longitude);
+        
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(success ? 'Ubicación actualizada correctamente' : 'Error al actualizar ubicación'),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Se necesitan permisos de ubicación')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _updatingLocation = false);
+      }
+    }
   }
 
   @override
@@ -64,6 +105,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const Text('Código de Vinculación', style: TextStyle(fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
               Card(child: Padding(padding: const EdgeInsets.all(12.0), child: Text(code))),
+              const SizedBox(height: 16),
+              const Text('Ubicación', style: TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              // Estado del tracking en tiempo real
+              Card(
+                color: RealtimeLocationService.isTracking ? Colors.green.shade50 : Colors.grey.shade50,
+                child: ListTile(
+                  leading: Icon(
+                    RealtimeLocationService.isTracking ? Icons.my_location : Icons.location_disabled,
+                    color: RealtimeLocationService.isTracking ? Colors.green : Colors.grey,
+                  ),
+                  title: Text(
+                    RealtimeLocationService.isTracking 
+                      ? 'Compartiendo ubicación' 
+                      : 'Ubicación no compartida'
+                  ),
+                  subtitle: Text(
+                    RealtimeLocationService.isTracking
+                      ? 'Actualizando cada 30 segundos'
+                      : 'Inicia la app para compartir',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                  trailing: RealtimeLocationService.isTracking
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.green,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'ACTIVO',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      )
+                    : null,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: ListTile(
+                  leading: const Icon(Icons.location_on, color: Colors.blue),
+                  title: const Text('Actualizar mi ubicación'),
+                  subtitle: const Text('Envía tu ubicación actual manualmente'),
+                  trailing: _updatingLocation 
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh),
+                  onTap: _updatingLocation ? null : _updateLocation,
+                ),
+              ),
             ],
             if (rol == 'padre') ...[
               const SizedBox(height: 12),

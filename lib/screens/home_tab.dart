@@ -4,6 +4,8 @@ import 'package:minkids/services/parent_children_service.dart';
 import 'package:minkids/services/user_service.dart';
 import 'package:minkids/models/user.dart';
 import 'package:minkids/models/child.dart';
+import 'package:minkids/services/child_location_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 class HomeTab extends StatefulWidget {
   final Function(int) onNavigate;
@@ -224,6 +226,8 @@ class _HomeTabState extends State<HomeTab> {
               Navigator.of(ctx).pop();
               if (res['ok'] == true) {
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hijo agregado: $code')));
+                // Capturar ubicación del hijo recién vinculado
+                await _captureChildLocation(code);
                 _load();
               } else {
                 final body = res['body'];
@@ -236,6 +240,37 @@ class _HomeTabState extends State<HomeTab> {
         ],
       ),
     );
+  }
+
+  Future<void> _captureChildLocation(String childCode) async {
+    try {
+      // Solicitar ubicación del hijo
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      
+      if (permission == LocationPermission.deniedForever || 
+          permission == LocationPermission.denied) {
+        print('Permisos de ubicación denegados');
+        return;
+      }
+      
+      final position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+      
+      final success = await ChildLocationService.registerMyLocation(
+        position.latitude,
+        position.longitude,
+      );
+      
+      if (success) {
+        print('Ubicación registrada: ${position.latitude}, ${position.longitude}');
+      }
+    } catch (e) {
+      print('Error capturando ubicación: $e');
+    }
   }
 
   Widget _buildChildHome(String name) {

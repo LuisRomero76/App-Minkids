@@ -45,5 +45,9 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>MinKids necesita tu ubicación para que tus padres puedan ver dónde estás y mantenerte seguro.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>MinKids necesita acceso a tu ubicación para ayudar a tus padres a cuidarte mejor.</string>
 </dict>
 </plist>

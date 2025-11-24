@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:minkids/services/auth_service.dart';
+import 'package:minkids/services/child_location_service.dart';
+import 'package:geolocator/geolocator.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -41,6 +43,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
             userData['code'] = code;
             await AuthService.updateUserData(userData);
           }
+        }
+      }
+      
+      // Capturar ubicación si es hijo
+      if (_rol == 'hijo' && loginRes['ok'] == true) {
+        try {
+          LocationPermission permission = await Geolocator.checkPermission();
+          if (permission == LocationPermission.denied) {
+            permission = await Geolocator.requestPermission();
+          }
+          
+          if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+            final position = await Geolocator.getCurrentPosition();
+            await ChildLocationService.registerMyLocation(position.latitude, position.longitude);
+          }
+        } catch (e) {
+          print('Error capturando ubicación: $e');
         }
       }
       
