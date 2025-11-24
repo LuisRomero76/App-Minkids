@@ -16,16 +16,31 @@ class LimitsService {
     }
   }
 
+  static Future<List<AppLimitModel>> getMyLimits() async {
+    try {
+      final resp = await ApiService.get('/child-app-limits/my-limits', auth: true);
+      if (resp.statusCode == 200) {
+        final List data = jsonDecode(resp.body);
+        return data.map((json) => AppLimitModel.fromJson(json)).toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
   static Future<bool> createLimit({
     required int childId,
     required int appId,
     required int dailyLimitMinutes,
+    bool enabled = true,
   }) async {
     try {
       final resp = await ApiService.post('/child-app-limits', {
         'child_id': childId,
         'app_id': appId,
         'daily_limit_minutes': dailyLimitMinutes,
+        'enabled': enabled,
       }, auth: true);
       return resp.statusCode == 200 || resp.statusCode == 201;
     } catch (e) {
@@ -49,4 +64,14 @@ class LimitsService {
       return false;
     }
   }
+
+  static Future<bool> deleteLimit(int limitId) async {
+    try {
+      final resp = await ApiService.delete('/child-app-limits/$limitId', auth: true);
+      return resp.statusCode == 200;
+    } catch (e) {
+      return false;
+    }
+  }
 }
+

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">MinKids</string>
+    <string name="accessibility_service_description">Este servicio ayuda a controlar el tiempo de uso de aplicaciones según los límites configurados por los padres.</string>
+</resources>

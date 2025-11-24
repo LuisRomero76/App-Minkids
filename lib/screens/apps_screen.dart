@@ -30,17 +30,19 @@ class _AppsScreenState extends State<AppsScreen> {
     final user = await AuthService.currentUser();
     setState(() => _user = user);
 
+    // Cargar aplicaciones disponibles
+    final apps = await ApplicationsService.getAll();
+    
     if (user?.rol == 'hijo' && user?.userId != null) {
       // Hijo: ver sus propios límites
       final limits = await LimitsService.getLimitsForChild(user!.userId!);
       setState(() {
         _limits = limits;
+        _allApps = apps;
         _loading = false;
       });
     } else if (user?.rol == 'padre') {
-      // Padre: cargar apps disponibles (para este ejemplo, mostrar placeholder)
-      // En producción, aquí cargarías los hijos y seleccionarías uno
-      final apps = await ApplicationsService.getAll();
+      // Padre: mostrar todas las apps disponibles
       setState(() {
         _allApps = apps;
         _loading = false;
@@ -202,11 +204,11 @@ class _AppsScreenState extends State<AppsScreen> {
             const SizedBox(height: 16),
             Text(
               'No hay aplicaciones registradas',
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: Colors.grey[600], fontSize: 16, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 8),
             const Text(
-              'Primero selecciona un hijo para configurar límites',
+              'Agrega aplicaciones desde el panel de administración',
               textAlign: TextAlign.center,
               style: TextStyle(color: Colors.grey),
             ),
@@ -215,19 +217,14 @@ class _AppsScreenState extends State<AppsScreen> {
       );
     }
 
-    // Mock list para demostración
-    final mockApps = [
-      {'name': 'TikTok', 'icon': Icons.video_library, 'limit': 60, 'used': 60},
-      {'name': 'Instagram', 'icon': Icons.photo_camera, 'limit': 120, 'used': 30},
-      {'name': 'YouTube', 'icon': Icons.play_circle, 'limit': 90, 'used': 90},
-    ];
-
     return ListView.builder(
-      itemCount: mockApps.length,
+      itemCount: _allApps.length,
       itemBuilder: (context, index) {
-        final app = mockApps[index];
-        final used = app['used'] as int;
-        final limit = app['limit'] as int;
+        final app = _allApps[index];
+        
+        // Valores por defecto para demo
+        final limit = 60;
+        final used = 0;
         final remaining = limit - used;
 
         return Card(
@@ -240,80 +237,90 @@ class _AppsScreenState extends State<AppsScreen> {
                 Row(
                   children: [
                     CircleAvatar(
-                      backgroundColor: Colors.grey[300],
-                      child: Icon(app['icon'] as IconData, color: Colors.black),
+                      backgroundColor: Colors.blue.shade100,
+                      child: Icon(
+                        _getAppIcon(app.packageName),
+                        color: Colors.blue.shade700,
+                      ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        app['name'] as String,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            app.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            app.packageName,
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 12,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
                       ),
                     ),
                     Switch(
                       value: true,
-                      onChanged: (val) {},
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                if (remaining <= 0)
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      'Tiempo agotado',
-                      style: TextStyle(
-                        color: Colors.red.shade700,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  )
-                else
-                  Column(
-                    children: [
-                      LinearProgressIndicator(
-                        value: used / limit,
-                        backgroundColor: Colors.grey[300],
-                        valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '$remaining min restantes',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                    ],
-                  ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Límite de tiempo: $limit min',
-                        style: TextStyle(color: Colors.grey[600]),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.edit, size: 20),
-                      onPressed: () {
-                        _showEditLimitDialog(app['name'] as String, limit);
+                      onChanged: (val) {
+                        // TODO: Implementar enable/disable
                       },
                     ),
                   ],
                 ),
-                ElevatedButton(
-                  onPressed: () {},
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: const Size(double.infinity, 40),
-                  ),
-                  child: const Text('Establecer Límite'),
+                const SizedBox(height: 12),
+                Column(
+                  children: [
+                    LinearProgressIndicator(
+                      value: used / limit,
+                      backgroundColor: Colors.grey[300],
+                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.blue),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '$remaining min restantes',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          'Límite: $limit min',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          _showEditLimitDialog(app.name, limit);
+                        },
+                        icon: const Icon(Icons.timer, size: 18),
+                        label: const Text('Configurar Límite'),
+                        style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(double.infinity, 40),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
