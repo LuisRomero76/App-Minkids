@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:minkids/services/auth_service.dart';
 import 'package:minkids/services/parent_children_service.dart';
 import 'package:minkids/services/user_service.dart';
+import 'package:minkids/services/tips_service.dart';
 import 'package:minkids/models/user.dart';
 import 'package:minkids/models/child.dart';
+import 'package:minkids/models/tip.dart';
 import 'package:minkids/services/child_location_service.dart';
 import 'package:geolocator/geolocator.dart';
 
@@ -20,6 +22,7 @@ class _HomeTabState extends State<HomeTab> {
   List<ChildModel> _children = [];
   List<Map<String, dynamic>> _parents = [];
   bool _loading = true;
+  TipModel? _dailyTip;
 
   @override
   void initState() {
@@ -33,14 +36,17 @@ class _HomeTabState extends State<HomeTab> {
     // Recargar datos cada vez que se vuelve a esta pantalla
     _load();
   }
-
   void _load() async {
     final user = await AuthService.currentUser();
-    setState(() => _user = user);
+    
+    // Cargar consejo aleatorio del día
+    final dailyTip = TipsService.getRandomTipForRole(user?.rol ?? 'hijo');
 
     if (user?.rol == 'padre') {
       final children = await ParentChildrenService.getMyChildren();
       setState(() {
+        _user = user;
+        _dailyTip = dailyTip;
         _children = children;
         _loading = false;
       });
@@ -57,15 +63,24 @@ class _HomeTabState extends State<HomeTab> {
         final parents = await ParentChildrenService.getMyParents();
         setState(() {
           _user = currentUserData;
+          _dailyTip = dailyTip;
           _parents = parents;
           _loading = false;
         });
       } catch (e) {
         print('Error al obtener usuario: $e'); // Debug
-        setState(() => _loading = false);
+        setState(() {
+          _user = user;
+          _dailyTip = dailyTip;
+          _loading = false;
+        });
       }
     } else {
-      setState(() => _loading = false);
+      setState(() {
+        _user = user;
+        _dailyTip = dailyTip;
+        _loading = false;
+      });
     }
   }
 
@@ -125,7 +140,7 @@ class _HomeTabState extends State<HomeTab> {
             _buildSummaryCard(
               icon: Icons.lightbulb_outline,
               title: 'Consejo del Día',
-              subtitle: 'Un buen balance ayuda a su desarrollo.',
+              subtitle: _dailyTip?.title ?? 'Un buen balance ayuda a su desarrollo.',
               color: Colors.indigo,
               onTap: () => widget.onNavigate(3),
             ),

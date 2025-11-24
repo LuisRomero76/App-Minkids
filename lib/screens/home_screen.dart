@@ -4,6 +4,7 @@ import 'package:minkids/screens/child_apps_screen.dart';
 import 'package:minkids/screens/parent_app_config_screen.dart';
 import 'package:minkids/screens/home_tab.dart';
 import 'package:minkids/screens/location_screen.dart';
+import 'package:minkids/screens/tips_screen.dart';
 import 'package:minkids/services/auth_service.dart';
 import 'package:minkids/services/realtime_location_service.dart';
 import 'package:minkids/services/app_usage_tracker.dart';
@@ -121,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         case 1:
           return const ChildAppsScreen();
         case 2:
-          return const Center(child: Text('Consejos'));
+          return const TipsScreen();
         case 3:
           return const ProfileScreen();
         default:
@@ -137,7 +138,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         case 2:
           return const LocationScreen();
         case 3:
-          return const Center(child: Text('Consejos'));
+          return const TipsScreen();
         case 4:
           return const ProfileScreen();
         default:
